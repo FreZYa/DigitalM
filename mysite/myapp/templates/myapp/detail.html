@@ -1,0 +1,53 @@
+{% extends "myapp/base.html" %}
+{% block title %}
+    {{ product.name }}
+{% endblock %}
+{% block body %}
+    <div class="flex p-10">
+        <div>
+            <img src="https://cdn1.iconfinder.com/data/icons/carbon-design-system-vol-6/32/no-image-256.png" alt="">
+        </div>
+        <div class="pl-10">
+            <div class="text-4xl mb-4">{{ product.name }}</div>
+            <div class="mb-4">{{ product.description }}</div>
+            <div class="mb-4 text-green-700 font-bold">${{ product.price }}</div>
+            <div>
+                <button id="checkout-button" class="bg-green-500 text-white px-4 py-2 rounded-sm">Buy</button>
+            </div>
+            <div id="myemail" class="hidden">
+                {{ request.user.email }}
+            </div>
+        </div>
+    </div>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script type="text/javascript">
+        var stripe = Stripe('{{ stripe_publishable_key }}');
+        var checkoutButton = document.getElementById('checkout-button');
+        checkoutButton.addEventListener('click', function () {
+            var email = document.getElementById('myemail').innerText.trim();
+            if (email == '') {
+                alert('Please login to continue');
+                return;
+            }
+            fetch("{% url 'api_checkout_session' product.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email
+                })
+            }).then(function (response) {
+                return response.json();
+            }).then(function (session) {
+                return stripe.redirectToCheckout({ sessionId: session.sessionId });
+            }).then(function (result) {
+                if (result.error) {
+                    alert(result.error.message);
+                }
+            }).catch(function (error) {
+                console.error('Error:', error);
+            });
+        })
+    </script>
+{% endblock %}
