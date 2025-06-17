@@ -1,1 +1,8 @@
-Success
+{% extends 'myapp/base.html' %}
+
+{% block body %}
+    <div class="grid place-items-center h-screen">
+        <div class="font-bold text-2xl">Payment Success</div> 
+        <a class="bg-green-500 font-bold text-white px-4 py-2 rounded-md" href="{{order.product.file.url}}" download>{{order.product.name}}</a>
+    </div>
+{% endblock %}

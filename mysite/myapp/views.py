@@ -1,6 +1,10 @@
 from django.conf import settings
 from django.urls import reverse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+
+from .forms import ProductForm, UserRegistrationForm
 from .models import Product, OrderDetail
 from django.views.decorators.csrf import csrf_exempt
 import stripe
@@ -72,3 +76,61 @@ def payment_success_view(request):
 
 def payment_failed_view(request):
     return render(request, "myapp/failed.html")
+
+# @login_required
+def create_product(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save()
+            messages.success(request, f"Product '{product.name}' created successfully!")
+            return redirect('index')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProductForm()
+    return render(request, "myapp/create_product.html", {"form": form})
+
+# @login_required
+def product_edit(request, id):
+    product = get_object_or_404(Product, id=id)
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            updated_product = form.save()
+            messages.success(request, f"Product '{updated_product.name}' updated successfully!")
+            return redirect('index')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProductForm(instance=product)
+    return render(request, "myapp/edit_product.html", {"form": form, "product": product})
+
+# @login_required
+def product_delete(request, id):
+    product = get_object_or_404(Product, id=id)
+    if request.method == 'POST':
+        product_name = product.name
+        product.delete()
+        messages.success(request, f"Product '{product_name}' deleted successfully!")
+        return redirect('index')
+    else:
+        return render(request, "myapp/delete.html", {"product": product})
+
+
+def dashboard(request):
+    products = Product.objects.all()
+    return render(request, "myapp/dashboard.html", {"products": products})
+
+
+def register(request):
+    if request.method == 'POST':
+        user_form = UserRegistrationForm(request.POST)   
+        new_user = user_form.save(commit=False)
+        new_user.set_password(user_form.cleaned_data['password'])
+        new_user.save()
+        messages.success(request, "User created successfully!")
+        return redirect('login')
+    else:
+        user_form = UserRegistrationForm()
+    return render(request, "myapp/register.html", {"user_form": user_form})
